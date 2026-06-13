@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ice Cream Quiz Game</title>
+<style>
+  :root {
+    --bg: #FCE9D8;
+    --panel: #FFF6EC;
+    --cone: #E8A85C;
+    --cone-dark: #C97F2E;
+    --scoop: #F8B7C7;
+    --scoop-dark: #E08FA6;
+    --accent: #4FB6A9;
+    --accent-dark: #2F8F84;
+    --text: #5A3A2A;
+    --correct: #6CBF6C;
+    --wrong: #E2685A;
+    --shadow: rgba(90, 58, 42, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: linear-gradient(180deg, #FDEFE0 0%, #FBE2CB 100%);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    margin: 12px 0 4px;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0 var(--shadow);
+  }
+
+  .subtitle {
+    margin: 0 0 24px;
+    font-size: 1rem;
+    opacity: 0.75;
+  }
+
+  /* ---------- Cone Grid ---------- */
+  .cone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 14px;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .cone-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px;
+    transition: transform 0.15s ease;
+    position: relative;
+  }
+
+  .cone-btn:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.05);
+  }
+
+  .cone-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    transform: none;
+  }
+
+  .cone-svg {
+    width: 64px;
+    height: 80px;
+    filter: drop-shadow(0 4px 4px var(--shadow));
+  }
+
+  .cone-number {
+    margin-top: 4px;
+    font-weight: bold;
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Modal / Overlay ---------- */
+  .overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(60, 35, 20, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 50;
+  }
+
+  .overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--panel);
+    border-radius: 24px;
+    max-width: 520px;
+    width: 100%;
+    padding: 28px 28px 24px;
+    box-shadow: 0 12px 0 var(--shadow);
+    text-align: center;
+    animation: pop-in 0.25s ease;
+  }
+
+  @keyframes pop-in {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    color: var(--accent-dark);
+  }
+
+  .question-text {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin: 12px 0 22px;
+    white-space: pre-wrap;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .choice-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--accent-dark);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .choice-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--accent-dark);
+  }
+
+  .choice-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--accent-dark);
+  }
+
+  .choice-btn.correct {
+    background: var(--correct);
+    box-shadow: 0 4px 0 #4f9e4f;
+  }
+
+  .choice-btn.wrong {
+    background: var(--wrong);
+    box-shadow: 0 4px 0 #b94a3e;
+  }
+
+  .choice-btn:disabled {
+    cursor: default;
+  }
+
+  /* ---------- Feedback ---------- */
+  .feedback {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 8px 0 4px;
+  }
+
+  .feedback.correct { color: var(--correct); }
+  .feedback.wrong { color: var(--wrong); }
+
+  .continue-btn {
+    margin-top: 18px;
+    background: var(--cone);
+    color: var(--text);
+    border: none;
+    border-radius: 14px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--cone-dark);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .continue-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--cone-dark);
+  }
+
+  /* ---------- Result Screen ---------- */
+  .result-modal {
+    padding: 0;
+    overflow: hidden;
+    max-width: 480px;
+  }
+
+  .result-image {
+    width: 100%;
+    display: block;
+  }
+
+  .result-image-placeholder {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: repeating-linear-gradient(45deg, #f3d9bf, #f3d9bf 12px, #f7e6d4 12px, #f7e6d4 24px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--cone-dark);
+    text-align: center;
+    padding: 20px;
+  }
+
+  .result-footer {
+    padding: 18px;
+  }
+
+  /* ---------- Footer / Progress ---------- */
+  .progress {
+    margin-top: 28px;
+    font-size: 0.95rem;
+    opacity: 0.8;
+  }
+
+  .reset-btn {
+    margin-top: 12px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent-dark);
+    border-radius: 12px;
+    padding: 8px 18px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .reset-btn:hover {
+    background: var(--accent);
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<h1>🍦 Ice Cream Quiz Game 🍦</h1>
+<p class="subtitle">Pick a cone, answer the question, and see what you get!</p>
+
+<div class="cone-grid" id="coneGrid"></div>
+
+<div class="progress" id="progress">0 / 26 cones answered</div>
+<button class="reset-btn" id="resetBtn">Reset Game</button>
+
+<!-- Question Modal -->
+<div class="overlay hidden" id="questionOverlay">
+  <div class="modal">
+    <h2 id="questionConeLabel">Cone #</h2>
+    <div class="question-text" id="questionText"></div>
+    <div class="choices" id="choicesContainer"></div>
+  </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="overlay hidden" id="feedbackOverlay">
+  <div class="modal">
+    <div class="feedback" id="feedbackText"></div>
+    <button class="continue-btn" id="continueBtn">Continue</button>
+  </div>
+</div>
+
+<!-- Result Modal -->
+<div class="overlay hidden" id="resultOverlay">
+  <div class="modal result-modal">
+    <div id="resultImageContainer"></div>
+    <div class="result-footer">
+      <button class="continue-btn" id="resultCloseBtn">Back to Cones</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   QUESTION DATA
+   - Each entry: { question: "...", choices: [correct, wrong] }
+   - choices[0] is ALWAYS the correct answer (will be shuffled at render time)
+   ========================================================= */
+const QUESTIONS = [
+  { question: `"First, gather all your ingredients before you start cooking."`, choices: ["Beginning Tier", "Middle Tier"] },
+  { question: `"Next, mix the flour and sugar together in a large bowl."`, choices: ["Middle Tier", "Beginning Tier"] },
+  { question: `"Subsequently, pour the batter into the prepared pan."`, choices: ["Middle Tier", "End Tier"] },
+  { question: `"Finally, place the cake on a rack to cool completely."`, choices: ["End Tier", "Middle Tier"] },
+  { question: `"To begin, switch on the computer and wait for it to load."`, choices: ["Beginning Tier", "Middle Tier"] },
+  { question: `"After that, the larvae spend several days feeding inside the cell."`, choices: ["Middle Tier", "End Tier"] },
+  { question: `"Ultimately, the seed develops into a small seedling with roots."`, choices: ["End Tier", "Beginning Tier"] },
+  { question: `"Then, the worker bees seal the cell with a wax cap."`, choices: ["Middle Tier", "Beginning Tier"] },
+  { question: `"Initially, check that all the safety equipment is in place."`, choices: ["Beginning Tier", "Middle Tier"] },
+  { question: `"In the end, the water evaporates and the cycle begins again."`, choices: ["End Tier", "Middle Tier"] },
+  { question: `"Changing a flat bike tire is easy if you follow these steps. First, remove the wheel from the frame by loosening the bolts. Next, use a tire lever to pry the old tire off the rim. Then, insert the new tube and carefully fit the tire back over it. Finally, pump the tire to the correct pressure and reattach the wheel."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"A caterpillar goes through a remarkable transformation before becoming a butterfly. First, the caterpillar eats constantly and grows much larger. Next, it attaches itself to a branch and forms a hard shell called a chrysalis. Inside, its body slowly rearranges into wings, legs, and antennae. Finally, the adult butterfly emerges and spreads its wings to dry."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Setting up a tent for camping does not have to be stressful. To begin, find a flat, clear spot and lay out the tent fabric. Next, connect the poles and slide them through the fabric sleeves. Then, raise the frame and stake down each corner firmly. Finally, attach the rain cover over the top for extra protection."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"The water cycle moves water around our planet in a continuous loop. First, heat from the sun causes water in oceans and lakes to evaporate into the air. Next, this water vapor rises and cools, forming clouds. Then, the water falls back to the ground as rain or snow. Finally, the water flows into rivers and oceans, and the cycle begins again."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Baking a loaf of bread from scratch takes patience but is worth it. First, mix the flour, yeast, salt, and water into a dough. Next, knead the dough for about ten minutes until it becomes smooth. Then, let the dough rise in a warm place for an hour. Finally, shape the dough into a loaf and bake it until golden brown."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"A volcano forms and erupts through a long natural process. First, magma builds up in a chamber beneath the Earth's crust. As pressure increases, the magma searches for weak points to escape through. Eventually, the pressure becomes too great, and the magma forces its way to the surface. Finally, the volcano erupts, releasing lava, ash, and gases into the air."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Applying for a part-time job online is simple once you know the steps. First, search for job listings on a website that matches your skills. Next, create an account and fill in your personal details. Then, upload your resume and write a short cover letter. Finally, submit the application and wait for a response."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"The human digestive system breaks down food in several stages. First, the mouth chews food and mixes it with saliva to begin digestion. Next, the food travels down the esophagus into the stomach, where acids break it down further. Then, the small intestine absorbs nutrients into the bloodstream. Finally, the large intestine removes waste from the body."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Preparing for a job interview can boost your confidence on the big day. First, research the company and learn about its mission and values. Next, practice answering common interview questions out loud. Then, choose professional clothing and prepare it the night before. Finally, arrive early and bring extra copies of your resume."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"Plants convert sunlight into energy through a process called photosynthesis. First, the leaves absorb sunlight using a pigment called chlorophyll. Next, the plant takes in carbon dioxide from the air through tiny pores. Then, using sunlight and water, the plant converts these ingredients into glucose. Finally, the plant releases oxygen as a byproduct into the air."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Then, fold the paper in half to create a crease."`, choices: ["Middle Tier", "Beginning Tier"] },
+  { question: `"Eventually, the metal cools and hardens into its final shape."`, choices: ["End Tier", "Middle Tier"] },
+  { question: `"To start, plug in the charger and connect it to your phone."`, choices: ["Beginning Tier", "Middle Tier"] },
+  { question: `"Brewing a cup of tea is something almost anyone can do at home. First, boil water in a kettle until it reaches a rolling boil. Next, place a tea bag into a cup and pour the hot water over it. Then, let the tea steep for three to five minutes depending on your taste. Finally, remove the tea bag and add milk or sugar if you like."`, choices: ["Directive (How-To)", "Informative (How It Works)"] },
+  { question: `"A rainbow forms through a natural process involving light and water. First, sunlight enters a raindrop and slows down as it passes through. Next, the light bends and separates into different colors inside the drop. Then, the light reflects off the back of the raindrop. Finally, the separated colors exit the drop and travel to our eyes, creating the rainbow we see."`, choices: ["Informative (How It Works)", "Directive (How-To)"] },
+  { question: `"Training a puppy to sit takes consistency and patience. First, hold a treat close to the puppy's nose to get its attention. Next, slowly move your hand upward, which should cause its bottom to lower. Then, say the word 'sit' clearly the moment it sits down. Finally, reward the puppy immediately with the treat and praise."`, choices: ["Directive (How-To)", "Informative (How It Works)"] }
+];
+
+/* =========================================================
+   RESULT SCREENS
+   Replace the `src` values with your own image file paths/URLs.
+   - "correct" pool: randomly chosen when the answer is right
+     (includes a chance of poop too, per the requirements)
+   - "wrong": always shown when the answer is wrong
+   ========================================================= */
+const CORRECT_RESULT_IMAGES = [
+  { src: "images/yummyraindow.png", alt: "Yummy rainbow ice cream!" },
+  { src: "images/yummystrawberry.png", alt: "Yummy strawberry ice cream!" },
+  { src: "images/yummychocolate.png", alt: "Yummy chocolate ice cream!" },
+  { src: "images/yummyblueberry.png", alt: "Yummy blueberry ice cream!" },
+  { src: "images/yucky.png", alt: "Oh no, it's poop!" }
+];
+
+const WRONG_RESULT_IMAGE = { src: "images/yucky.png", alt: "Oh no, it's poop!" };
+
+/* ========================================================= */
+
+const TOTAL_CONES = 26;
+const answeredCones = new Set();
+let currentConeIndex = null;
+let currentCorrectAnswer = null;
+
+const coneGrid = document.getElementById('coneGrid');
+const progressEl = document.getElementById('progress');
+const resetBtn = document.getElementById('resetBtn');
+
+const questionOverlay = document.getElementById('questionOverlay');
+const questionConeLabel = document.getElementById('questionConeLabel');
+const questionText = document.getElementById('questionText');
+const choicesContainer = document.getElementById('choicesContainer');
+
+const feedbackOverlay = document.getElementById('feedbackOverlay');
+const feedbackText = document.getElementById('feedbackText');
+const continueBtn = document.getElementById('continueBtn');
+
+const resultOverlay = document.getElementById('resultOverlay');
+const resultImageContainer = document.getElementById('resultImageContainer');
+const resultCloseBtn = document.getElementById('resultCloseBtn');
+
+// Cone SVG (simple two-scoop cone)
+function coneSVG() {
+  return `
+  <svg class="cone-svg" viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="32,78 14,34 50,34" fill="#E8A85C" stroke="#C97F2E" stroke-width="2"/>
+    <line x1="20" y1="42" x2="34" y2="56" stroke="#C97F2E" stroke-width="1.5"/>
+    <line x1="44" y1="42" x2="30" y2="56" stroke="#C97F2E" stroke-width="1.5"/>
+    <line x1="17" y1="50" x2="29" y2="62" stroke="#C97F2E" stroke-width="1.5"/>
+    <line x1="47" y1="50" x2="35" y2="62" stroke="#C97F2E" stroke-width="1.5"/>
+    <ellipse cx="32" cy="34" rx="19" ry="14" fill="#F8B7C7" stroke="#E08FA6" stroke-width="2"/>
+    <ellipse cx="32" cy="22" rx="14" ry="12" fill="#FCE0E8" stroke="#E08FA6" stroke-width="2"/>
+  </svg>`;
+}
+
+function buildConeGrid() {
+  coneGrid.innerHTML = '';
+  for (let i = 1; i <= TOTAL_CONES; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'cone-btn';
+    btn.dataset.cone = i;
+    btn.innerHTML = coneSVG() + `<span class="cone-number">${i}</span>`;
+    btn.addEventListener('click', () => openQuestion(i));
+    if (answeredCones.has(i)) btn.disabled = true;
+    coneGrid.appendChild(btn);
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  progressEl.textContent = `${answeredCones.size} / ${TOTAL_CONES} cones answered`;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function openQuestion(coneNum) {
+  currentConeIndex = coneNum;
+  const data = QUESTIONS[coneNum - 1];
+  currentCorrectAnswer = data.choices[0];
+
+  questionConeLabel.textContent = `Cone #${coneNum}`;
+  questionText.textContent = data.question;
+
+  const shuffledChoices = shuffle(data.choices);
+  choicesContainer.innerHTML = '';
+  shuffledChoices.forEach(choiceLabel => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choiceLabel;
+    btn.addEventListener('click', () => handleAnswer(choiceLabel, btn));
+    choicesContainer.appendChild(btn);
+  });
+
+  questionOverlay.classList.remove('hidden');
+}
+
+function handleAnswer(selected, clickedBtn) {
+  const isCorrect = selected === currentCorrectAnswer;
+
+  // Disable all choice buttons and highlight correct/wrong
+  const allBtns = choicesContainer.querySelectorAll('.choice-btn');
+  allBtns.forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent === currentCorrectAnswer) {
+      btn.classList.add('correct');
+    } else if (btn === clickedBtn) {
+      btn.classList.add('wrong');
+    }
+  });
+
+  // Brief pause so the user sees the highlighted choice, then show feedback
+  setTimeout(() => {
+    questionOverlay.classList.add('hidden');
+    showFeedback(isCorrect);
+  }, 600);
+}
+
+function showFeedback(isCorrect) {
+  feedbackText.textContent = isCorrect ? '🎉 Correct! 🎉' : '❌ Wrong! ❌';
+  feedbackText.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+  feedbackOverlay.classList.remove('hidden');
+
+  continueBtn.onclick = () => {
+    feedbackOverlay.classList.add('hidden');
+    showResult(isCorrect);
+  };
+}
+
+function showResult(isCorrect) {
+  let image;
+  if (isCorrect) {
+    image = CORRECT_RESULT_IMAGES[Math.floor(Math.random() * CORRECT_RESULT_IMAGES.length)];
+  } else {
+    image = WRONG_RESULT_IMAGE;
+  }
+
+  resultImageContainer.innerHTML = `
+    <img class="result-image" src="${image.src}" alt="${image.alt}"
+         onerror="this.outerHTML = '<div class=\\'result-image-placeholder\\'>Image missing: ${image.src}<br>(${image.alt})</div>'">
+  `;
+
+  resultOverlay.classList.remove('hidden');
+
+  resultCloseBtn.onclick = () => {
+    resultOverlay.classList.add('hidden');
+    answeredCones.add(currentConeIndex);
+    buildConeGrid();
+  };
+}
+
+resetBtn.addEventListener('click', () => {
+  answeredCones.clear();
+  buildConeGrid();
+});
+
+buildConeGrid();
+</script>
+</body>
+</html>
